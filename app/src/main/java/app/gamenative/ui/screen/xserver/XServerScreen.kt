@@ -6,6 +6,7 @@ import android.app.Activity
 import android.content.Context
 import android.graphics.Color
 import android.os.Build
+import android.os.PowerManager
 import android.os.SystemClock
 import android.util.Log
 import android.view.Display
@@ -582,6 +583,8 @@ fun XServerScreen(
     var detectedMaxRefreshRateHz by remember { mutableIntStateOf(detectMaxRefreshRateHz(context, null)) }
     var fpsLimiterEnabled by rememberSaveable(container.id) { mutableStateOf(initialFpsLimiterEnabled(container)) }
     var fpsLimiterTarget by rememberSaveable(container.id) { mutableIntStateOf(initialFpsLimiterTarget(container)) }
+    // Android's thermal status; ThermalFpsGovernor lowers the FPS limit while it reports the device as hot.
+    var thermalStatus by remember { mutableIntStateOf(PowerManager.THERMAL_STATUS_NONE) }
 
     val gyroOverlaySuppressed = showQuickMenu || keepPausedForEditor || showElementEditor ||
         showPhysicalControllerDialog || showTouchGestureDialog || showShooterModeDialog ||
@@ -695,7 +698,7 @@ fun XServerScreen(
     }
 
     fun effectiveFpsLimit(): Int =
-        if (fpsLimiterEnabled) fpsLimiterTarget else 0
+        ThermalFpsGovernor.limit(if (fpsLimiterEnabled) fpsLimiterTarget else 0, thermalStatus)
 
     fun applyLsfgSettings() {
         LsfgQuickMenuHelper.applySettings(
@@ -749,6 +752,24 @@ fun XServerScreen(
             fpsLimiterTarget = clampedTarget
         }
         applyFpsLimiterToEngines(effectiveFpsLimit())
+    }
+
+    DisposableEffect(Unit) {
+        val powerManager = context.getSystemService(PowerManager::class.java)
+        val listener = PowerManager.OnThermalStatusChangedListener { status ->
+            val before = ThermalFpsGovernor.capFor(thermalStatus)
+            thermalStatus = status
+            val cap = ThermalFpsGovernor.capFor(status)
+            Timber.i("Thermal status $status, FPS cap ${if (cap == 0) "none" else cap}")
+            applyFpsLimiterToEngines(effectiveFpsLimit())
+            if (cap != 0 && cap != before) {
+                SnackbarManager.show("Device is hot: limiting to $cap FPS")
+            }
+        }
+        // The listener runs on the main thread, so it can touch the Compose state directly.
+        powerManager?.let { thermalStatus = it.currentThermalStatus }
+        powerManager?.addThermalStatusListener(ContextCompat.getMainExecutor(context), listener)
+        onDispose { powerManager?.removeThermalStatusListener(listener) }
     }
 
     fun restorePerformanceHudPosition() {
@@ -1886,7 +1907,7 @@ fun XServerScreen(
             }
             val xServerView = xServerViewInstance.apply {
                 xServerView = this
-                setFrameRateLimit(if (fpsLimiterEnabled) fpsLimiterTarget else 0)
+                setFrameRateLimit(effectiveFpsLimit())
                 val renderer = this.renderer
                 if (!useGLRenderer && renderer is VulkanRenderer) {
                     renderer.setFrameGenerationArmed(isLsfgAvailable)
