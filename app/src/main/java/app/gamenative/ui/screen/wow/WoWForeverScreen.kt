@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -68,6 +69,7 @@ import com.winlator.contents.ContentsManager
 import com.winlator.core.FileUtils
 import com.winlator.core.GPUInformation
 import com.winlator.core.TarCompressorUtils
+import com.winlator.inputcontrols.InputControlsManager
 import com.winlator.xenvironment.ImageFs
 import com.winlator.xenvironment.ImageFsInstaller
 import kotlin.math.roundToInt
@@ -108,6 +110,7 @@ fun WoWForeverScreen(
     var browserLogin by remember { mutableStateOf(BattleNetBrowserLogin.enabled(context)) }
     var region by remember(gamePath, files) { mutableStateOf(GameRegion.current(context, gamePath)) }
     var resolution by remember { mutableStateOf(RenderResolution.current(context, gpu.screenSize)) }
+    var touchLayout by remember { mutableStateOf(TouchLayout.current(context)) }
     var showLoginDialog by remember { mutableStateOf(false) }
     var statusText by remember { mutableStateOf(READY_STATUS) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -514,6 +517,10 @@ fun WoWForeverScreen(
                             RenderResolution.save(context, it)
                             resolution = it
                         }
+                    }
+                    OptionMenu("Touch: ${touchLayout.label}", Icons.Default.TouchApp, TouchLayout.entries, touchLayout, { it.label }, !isLaunching) {
+                        TouchLayout.save(context, it)
+                        touchLayout = it
                     }
 
                     longUptimeDays()?.let { days ->
@@ -1011,6 +1018,55 @@ enum class RenderResolution(val size: String, val label: String) {
     }
 }
 
+/**
+ * The on-screen controls shown when no controller, keyboard or mouse is connected. Gamepad is the generic virtual
+ * gamepad; the others are WoW layouts bundled as input-control profiles (`controls-100.icp`, `controls-101.icp`).
+ */
+enum class TouchLayout(val label: String, val templateProfileId: Int?) {
+    GAMEPAD("Gamepad", null), WOW("WoW", 100), HUNTER_BM("Hunter BM", 101);
+
+    private val copyKey get() = "touch_profile_$name"
+
+    companion object {
+        private const val KEY_TOUCH_LAYOUT = "touch_layout"
+
+        fun current(context: Context): TouchLayout =
+            prefs(context).getString(KEY_TOUCH_LAYOUT, null)?.let { saved -> entries.firstOrNull { it.name == saved } } ?: GAMEPAD
+
+        fun save(context: Context, layout: TouchLayout) {
+            prefs(context).edit().putString(KEY_TOUCH_LAYOUT, layout.name).apply()
+        }
+
+        /**
+         * Points the container at the chosen layout. Each WoW layout is played from the player's own copy of the
+         * bundled profile, made on first use: the bundled one is overwritten on every app update, which would undo
+         * changes made with Edit Controls. Gamepad drops our profile but keeps one the player made themselves.
+         */
+        fun apply(context: Context, container: Container, layout: TouchLayout) {
+            val manager = InputControlsManager(context)
+            val ownCopies = entries.mapNotNull { prefs(context).getInt(it.copyKey, 0).takeIf { id -> id != 0 } }
+            val profileId = layout.templateProfileId?.let { templateId ->
+                prefs(context).getInt(layout.copyKey, 0).takeIf { it != 0 && manager.getProfile(it) != null }
+                    ?: runCatching {
+                        val copy = manager.duplicateProfile(manager.getProfile(templateId) ?: return)
+                        copy.setName("WoW Forever - ${layout.label}")
+                        copy.save()
+                        prefs(context).edit().putInt(layout.copyKey, copy.id).apply()
+                        copy.id
+                    }.onFailure { Timber.w(it, "Couldn't copy the ${layout.label} touch profile") }.getOrNull()
+                    ?: return
+            }
+            val current = container.getExtra("profileId", "0").toIntOrNull() ?: 0
+            when {
+                profileId != null -> container.putExtra("profileId", profileId.toString())
+                current in ownCopies -> container.putExtra("profileId", null)
+                else -> return
+            }
+            container.saveData()
+        }
+    }
+}
+
 object GamePath {
     private const val KEY_GAME_PATH = "game_path"
 
@@ -1288,6 +1344,7 @@ private fun prepareLaunch(context: Context, gameRoot: File, gpu: GpuProfile, scr
         container.saveData()
     }
     check(containerManager.hasContainer(CONTAINER_ID)) { "Container creation failed. Check system storage and logs." }
+    containerManager.getContainerById(CONTAINER_ID)?.let { TouchLayout.apply(context, it, TouchLayout.current(context)) }
     // Written last, so the password isn't on disk during the client download or container setup.
     if (BattleNetBrowserLogin.enabled(context)) {
         // Even an empty login.txt can select the password path instead of the launcher session.

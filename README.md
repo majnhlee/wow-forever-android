@@ -96,12 +96,56 @@ Once your game files and Battle.net credentials are configured, the app automati
 ### Controls and signing in
 
 - **Controller:** built-in handheld controllers work in-game. WoW's own gamepad mode handles the mapping.
+- **Touch controls:** with no controller, keyboard or mouse connected, on-screen controls appear. Tap **Touch** on the setup screen to pick the layout: **Gamepad** (a generic virtual gamepad), **WoW** or **Hunter BM**. See [Touch layouts for WoW](#touch-layouts-for-wow).
 - **In-game menu:** press Back (the button or the back swipe gesture) to open the sidebar. It has **Keyboard**, on-screen controls, performance overlay and **Exit**.
 - **Keyboard:** the sidebar's **Keyboard** opens the Android keyboard. On dual-screen devices like the Thor it appears on the bottom screen. Symbols like `@` work, and so does pasting.
 - **Battle.net Auto-Login:** configure credentials directly on the launcher setup screen (**Password login**). Credentials are saved encrypted on-device via Android Keystore. On boot, the launcher generates `_forever_/login.txt`, which the WoW client automatically reads on startup to sign in natively without macro simulation or synthetic clicks. Use **Forget Login** on the launcher setup screen to clear credentials and remove the login file.
 - **Experimental browser login:** for accounts that keep getting BLZ51914400 with the saved login. Turn **Browser login** on in the launcher and press **Play**: Battle.net's own sign-in page opens, where you can confirm the device, and the game then starts with a one-time session from Battle.net instead of your password, the way the Battle.net app starts it. Turn it off to go back to the saved login. Details and the device-test checklist are in [tools/wow-session-bridge](tools/wow-session-bridge/ANDROID_TESTING.md).
   - Authenticator codes still have to be entered by hand. The game keeps running when you switch apps, so you can grab a code from an authenticator app on the same device.
   - Each install shows Battle.net its own Windows PC identity (machine ID and a `DESKTOP-XXXXXXX` computer name), generated once and kept across updates. Reinstalling the app creates a new one, so Battle.net may treat it as a new device.
+
+### Touch layouts for WoW
+
+The **WoW** and **Hunter BM** layouts share one arrangement. Every button sends one key or one key chord, the same as pressing it on a keyboard, so nothing is automated.
+
+| On screen | Sends | In WoW |
+| :--- | :--- | :--- |
+| Left stick | Gamepad left stick | Move (relative to the camera) |
+| Round pad, top right | Gamepad right stick | Turn the camera |
+| Zoom+ / Zoom- | Mouse wheel | Camera zoom |
+| 12-button grid, bottom right | `1` … `0`, `-`, `=` | Action bar 1 (bottom row is slots 1–4) |
+| Tab / Jump | `Tab` / `Space` | Target nearest enemy / jump |
+| Use | `F12` | Unbound: set **Interact With Target** to it |
+| Two buttons beside the stick | `Ctrl+1`, `Ctrl+2` | Pet bar slots 1 and 2 (Attack, Follow) |
+| Four buttons above the stick | `Alt+1` … `Alt+4` | Unbound: set them to a second action bar |
+| Top row | `Esc`, `B`, `M`, `L`, `P` | Menu, bags, map, quest log, spellbook |
+
+One-time setup in the game: open **Esc → Key Bindings**, click the binding for **Interact With Target** and press **Use**, then bind the first four **Bottom Left Action Bar** slots by pressing the four buttons above the stick.
+
+Each layout is copied the first time it's used, so changes made with **Edit Controls** in the in-game menu are kept across app updates.
+
+**Hunter BM** labels the buttons for a Beast Mastery hunter. Put these on action bar 1 and the bottom left bar:
+
+| Slot | Label | Spell or macro |
+| :--- | :--- | :--- |
+| 1 | Mark | `#showtooltip Hunter's Mark` / `/petattack` / `/cast Hunter's Mark` |
+| 2 | Sting | Serpent Sting |
+| 3 | Arcane | Arcane Shot |
+| 4 | Multi | Multi-Shot |
+| 5 | Concus | Concussive Shot |
+| 6 | Auto | `/cast !Auto Shot` |
+| 7 | Raptor | `/startattack` / `/cast Raptor Strike` |
+| 8 | Bite | Mongoose Bite |
+| 9 | Clip | Wing Clip |
+| 0 | Feign | Feign Death |
+| - | Trap | Freezing Trap |
+| = | Aspect | `#showtooltip` / `/cast [combat] !Aspect of the Hawk; !Aspect of the Cheetah` |
+| Alt+1 | Wrath | Bestial Wrath |
+| Alt+2 | Intim | Intimidation |
+| Alt+3 | Rapid | Rapid Fire |
+| Alt+4 | Pet | `#showtooltip` / `/cast [@pet,exists,nodead] Mend Pet` / `/cast [nopet] Call Pet` / `/cast [nopet][@pet,dead] Revive Pet` |
+
+(`/` separates the lines of a macro.)
 
 ---
 
