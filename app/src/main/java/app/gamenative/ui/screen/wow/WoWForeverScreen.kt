@@ -1021,11 +1021,11 @@ enum class RenderResolution(val size: String, val label: String) {
 
 /**
  * The on-screen controls shown when no controller, keyboard or mouse is connected, each bundled as an input-control
- * profile: a virtual gamepad for WoW's gamepad mode and WoW layouts with one button per action. Each has a Switch
- * button that flips between the gamepad and the WoW layout played last.
+ * profile and both built for WoW's gamepad mode: a plain virtual gamepad, and the same gamepad with one-tap chords
+ * into WoW's LT and RT action sets plus shortcuts to its windows. Each has a Switch button to the other one.
  */
 enum class TouchLayout(val label: String, private val templateAsset: String) {
-    GAMEPAD("Gamepad", "controls-102.icp"), WOW("WoW", "controls-100.icp"), HUNTER_BM("Hunter BM", "controls-101.icp");
+    GAMEPAD("Gamepad", "controls-102.icp"), WOW("WoW", "controls-100.icp");
 
     private val copyKey get() = "touch_profile_$name"
     private val revisionKey get() = "touch_profile_revision_$name"
