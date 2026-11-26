@@ -123,7 +123,7 @@ The **WoW** and **Hunter BM** layouts share one arrangement. Every button sends 
 
 One-time setup in the game: open **Esc → Key Bindings**, click the binding for **Interact With Target** and press **Use**, then bind the first four **Bottom Left Action Bar** slots by pressing the four buttons above the stick.
 
-Each layout is copied the first time it's used, so changes made with **Edit Controls** in the in-game menu are kept across app updates.
+Each layout is copied the first time it's used, so changes made with **Edit Controls** in the in-game menu are kept across app updates. An update that changes a layout itself replaces your copy of it, so new buttons show up.
 
 **Hunter BM** labels the buttons for a Beast Mastery hunter. Put these on action bar 1 and the bottom left bar:
 

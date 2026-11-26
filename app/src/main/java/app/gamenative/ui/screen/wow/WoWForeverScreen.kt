@@ -1021,20 +1021,21 @@ enum class RenderResolution(val size: String, val label: String) {
 
 /**
  * The on-screen controls shown when no controller, keyboard or mouse is connected, each bundled as an input-control
- * profile: a virtual gamepad for WoW's gamepad mode (`controls-102.icp`) and WoW layouts with one button per action
- * (`controls-100.icp`, `controls-101.icp`). Each has a Switch button that flips between the gamepad and the WoW
- * layout played last.
+ * profile: a virtual gamepad for WoW's gamepad mode and WoW layouts with one button per action. Each has a Switch
+ * button that flips between the gamepad and the WoW layout played last.
  */
-enum class TouchLayout(val label: String, val templateProfileId: Int) {
-    GAMEPAD("Gamepad", 102), WOW("WoW", 100), HUNTER_BM("Hunter BM", 101);
+enum class TouchLayout(val label: String, private val templateAsset: String) {
+    GAMEPAD("Gamepad", "controls-102.icp"), WOW("WoW", "controls-100.icp"), HUNTER_BM("Hunter BM", "controls-101.icp");
 
     private val copyKey get() = "touch_profile_$name"
+    private val revisionKey get() = "touch_profile_revision_$name"
 
     fun next(): TouchLayout = entries[(ordinal + 1) % entries.size]
 
     companion object {
         private const val KEY_TOUCH_LAYOUT = "touch_layout"
         private const val KEY_LAST_ACTION_LAYOUT = "touch_layout_last_action"
+        private const val ASSET_DIR = "inputcontrols/profiles"
 
         /** The layouts are WoW's, so the in-game menu only offers them for the WoW container. */
         fun isFor(container: Container) = container.id == CONTAINER_ID
@@ -1056,32 +1057,37 @@ enum class TouchLayout(val label: String, val templateProfileId: Int) {
 
         /**
          * Points the container at the chosen layout. Each layout is played from the player's own copy of the bundled
-         * profile, made on first use: the bundled one is overwritten on every app update, which would undo changes
-         * made with Edit Controls.
+         * profile, so changes made with Edit Controls survive app updates. A copy is replaced when the bundled layout
+         * itself changes, which is how new buttons reach players.
          */
         fun apply(context: Context, container: Container, layout: TouchLayout) {
-            val templateId = layout.templateProfileId
-            var manager = InputControlsManager(context)
-            // The bundled profiles are only copied out when the version code changes, so an update that keeps it
-            // would leave the layout missing.
-            if (manager.getProfile(templateId) == null) {
-                val file = ControlsProfile.getProfileFile(context, templateId)
-                if (!file.exists()) {
-                    FileUtils.copy(context, "inputcontrols/profiles/controls-$templateId.icp", file)
-                    manager = InputControlsManager(context)
-                }
-            }
-            val profileId = prefs(context).getInt(layout.copyKey, 0).takeIf { it != 0 && manager.getProfile(it) != null }
-                ?: runCatching {
-                    val copy = manager.duplicateProfile(manager.getProfile(templateId) ?: return)
-                    copy.setName("WoW Forever - ${layout.label}")
-                    copy.save()
-                    prefs(context).edit().putInt(layout.copyKey, copy.id).apply()
-                    copy.id
-                }.onFailure { Timber.w(it, "Couldn't copy the ${layout.label} touch profile") }.getOrNull()
-                ?: return
+            val profileId = runCatching { playerCopy(context, layout) }
+                .onFailure { Timber.w(it, "Couldn't set up the ${layout.label} touch profile") }
+                .getOrNull() ?: return
             container.putExtra("profileId", profileId.toString())
             container.saveData()
+        }
+
+        private fun playerCopy(context: Context, layout: TouchLayout): Int? {
+            val prefs = prefs(context)
+            val bundled = FileUtils.readString(context, "$ASSET_DIR/${layout.templateAsset}") ?: return null
+            val revision = bundled.hashCode()
+            val manager = InputControlsManager(context)
+
+            val copyId = prefs.getInt(layout.copyKey, 0)
+            val copy = if (copyId != 0) manager.getProfile(copyId) else null
+            if (copy != null && prefs.contains(layout.revisionKey) && prefs.getInt(layout.revisionKey, 0) == revision) {
+                return copy.id
+            }
+            copy?.let { manager.removeProfile(it) }
+
+            // Made from the bundled file rather than the profile the app copies out of it: that one keeps its old
+            // contents when its id was taken on the device and it had to move.
+            val id = (manager.getProfiles().maxOfOrNull { it.id } ?: 0) + 1
+            val json = JSONObject(bundled).put("id", id).put("name", "WoW Forever - ${layout.label}")
+            if (!FileUtils.writeString(ControlsProfile.getProfileFile(context, id), json.toString())) return null
+            prefs.edit().putInt(layout.copyKey, id).putInt(layout.revisionKey, revision).apply()
+            return id
         }
     }
 }
