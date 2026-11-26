@@ -96,7 +96,7 @@ Once your game files and Battle.net credentials are configured, the app automati
 ### Controls and signing in
 
 - **Controller:** built-in handheld controllers work in-game. WoW's own gamepad mode handles the mapping.
-- **Touch controls:** with no controller, keyboard or mouse connected, on-screen controls appear. Tap **Touch** on the setup screen to pick the layout: **WoW** (the default), **Hunter BM** or **Gamepad** (a generic virtual gamepad). In the game, **Touch layout** in the sidebar's controller tab steps through them and switches at once. See [Touch layouts for WoW](#touch-layouts-for-wow).
+- **Touch controls:** with no controller, keyboard or mouse connected, on-screen controls appear. Tap **Touch** on the setup screen to pick the layout: **WoW** (the default), **Hunter BM** or **Gamepad** (a virtual gamepad for WoW's gamepad mode, for menus and targeting). In the game, the **Pad** button on a WoW layout switches to the gamepad and its **WoW** button switches back to the layout used last; **Touch layout** in the sidebar's controller tab steps through all three. See [Touch layouts for WoW](#touch-layouts-for-wow).
 - **In-game menu:** press Back (the button or the back swipe gesture) to open the sidebar. It has **Keyboard**, on-screen controls, performance overlay and **Exit**.
 - **Keyboard:** the sidebar's **Keyboard** opens the Android keyboard. On dual-screen devices like the Thor it appears on the bottom screen. Symbols like `@` work, and so does pasting.
 - **Battle.net Auto-Login:** configure credentials directly on the launcher setup screen (**Password login**). Credentials are saved encrypted on-device via Android Keystore. On boot, the launcher generates `_forever_/login.txt`, which the WoW client automatically reads on startup to sign in natively without macro simulation or synthetic clicks. Use **Forget Login** on the launcher setup screen to clear credentials and remove the login file.
@@ -119,6 +119,7 @@ The **WoW** and **Hunter BM** layouts share one arrangement. Every button sends 
 | Two buttons beside the stick | `Ctrl+1`, `Ctrl+2` | Pet bar slots 1 and 2 (Attack, Follow) |
 | Four buttons above the stick | `Alt+1` … `Alt+4` | Unbound: set them to a second action bar |
 | Top row | `Esc`, `B`, `M`, `L`, `P` | Menu, bags, map, quest log, spellbook |
+| Pad | | Switches to the virtual gamepad |
 
 One-time setup in the game: open **Esc → Key Bindings**, click the binding for **Interact With Target** and press **Use**, then bind the first four **Bottom Left Action Bar** slots by pressing the four buttons above the stick.
 

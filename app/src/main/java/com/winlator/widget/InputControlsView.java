@@ -141,6 +141,9 @@ public class InputControlsView extends View {
     private Runnable showKeyboardCallback;
     // Tracks whether SHOW_KEYBOARD is currently held, so the callback fires once per press (rising edge only)
     private boolean showKeyboardPressed;
+    // Callback invoked when the SWITCH_LAYOUT binding is pressed, and whether it's held (fires once per press)
+    private Runnable switchLayoutCallback;
+    private boolean switchLayoutPressed;
     private RadialMenuListener radialMenuListener;
     private boolean radialMenuTouchActive;
     private int radialMenuTouchPointerId = MotionEvent.INVALID_POINTER_ID;
@@ -662,6 +665,10 @@ public class InputControlsView extends View {
 
     public void setShowKeyboardCallback(Runnable callback) {
         this.showKeyboardCallback = callback;
+    }
+
+    public void setSwitchLayoutCallback(Runnable callback) {
+        this.switchLayoutCallback = callback;
     }
 
     public void setRadialMenuListener(RadialMenuListener listener) {
@@ -1748,6 +1755,14 @@ public class InputControlsView extends View {
                 } else {
                     showKeyboardPressed = false;
                 }
+                return;
+            }
+            else if (binding == Binding.SWITCH_LAYOUT) {
+                if (isActionDown && !switchLayoutPressed && switchLayoutCallback != null) {
+                    // Posted: the switch replaces the profile whose element is handling this touch.
+                    post(switchLayoutCallback);
+                }
+                switchLayoutPressed = isActionDown;
                 return;
             }
             else if (binding == Binding.ALT_ENTER) {

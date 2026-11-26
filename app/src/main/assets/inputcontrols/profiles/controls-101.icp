@@ -500,6 +500,22 @@
             "toggleSwitch": false,
             "text": "Spells",
             "iconId": 0
+        },
+        {
+            "type": "BUTTON",
+            "shape": "ROUND_RECT",
+            "bindings": [
+                "SWITCH_LAYOUT",
+                "NONE",
+                "NONE",
+                "NONE"
+            ],
+            "scale": 0.6,
+            "x": 0.68,
+            "y": 0.05,
+            "toggleSwitch": false,
+            "text": "Pad",
+            "iconId": 0
         }
     ],
     "controllers": [

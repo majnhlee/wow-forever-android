@@ -884,6 +884,11 @@ fun QuickMenu(
         onToolsVisibilityChanged(isVisible && selectedTab == QuickMenuTab.TOOLS)
     }
 
+    // The on-screen Switch button can change the layout while the menu is closed.
+    LaunchedEffect(isVisible) {
+        if (isVisible) touchLayout = TouchLayout.current(context)
+    }
+
     LaunchedEffect(isVisible, gyroMenu) {
         gyroMenu?.applyToCurrentView()
     }

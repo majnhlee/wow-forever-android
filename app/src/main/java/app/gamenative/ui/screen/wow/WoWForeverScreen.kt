@@ -1020,11 +1020,13 @@ enum class RenderResolution(val size: String, val label: String) {
 }
 
 /**
- * The on-screen controls shown when no controller, keyboard or mouse is connected. Gamepad is the generic virtual
- * gamepad; the others are WoW layouts bundled as input-control profiles (`controls-100.icp`, `controls-101.icp`).
+ * The on-screen controls shown when no controller, keyboard or mouse is connected, each bundled as an input-control
+ * profile: a virtual gamepad for WoW's gamepad mode (`controls-102.icp`) and WoW layouts with one button per action
+ * (`controls-100.icp`, `controls-101.icp`). Each has a Switch button that flips between the gamepad and the WoW
+ * layout played last.
  */
-enum class TouchLayout(val label: String, val templateProfileId: Int?) {
-    GAMEPAD("Gamepad", null), WOW("WoW", 100), HUNTER_BM("Hunter BM", 101);
+enum class TouchLayout(val label: String, val templateProfileId: Int) {
+    GAMEPAD("Gamepad", 102), WOW("WoW", 100), HUNTER_BM("Hunter BM", 101);
 
     private val copyKey get() = "touch_profile_$name"
 
@@ -1032,51 +1034,53 @@ enum class TouchLayout(val label: String, val templateProfileId: Int?) {
 
     companion object {
         private const val KEY_TOUCH_LAYOUT = "touch_layout"
+        private const val KEY_LAST_ACTION_LAYOUT = "touch_layout_last_action"
 
         /** The layouts are WoW's, so the in-game menu only offers them for the WoW container. */
         fun isFor(container: Container) = container.id == CONTAINER_ID
 
-        fun current(context: Context): TouchLayout =
-            prefs(context).getString(KEY_TOUCH_LAYOUT, null)?.let { saved -> entries.firstOrNull { it.name == saved } } ?: WOW
+        fun current(context: Context): TouchLayout = saved(context, KEY_TOUCH_LAYOUT) ?: WOW
 
         fun save(context: Context, layout: TouchLayout) {
-            prefs(context).edit().putString(KEY_TOUCH_LAYOUT, layout.name).apply()
+            val editor = prefs(context).edit().putString(KEY_TOUCH_LAYOUT, layout.name)
+            if (layout != GAMEPAD) editor.putString(KEY_LAST_ACTION_LAYOUT, layout.name)
+            editor.apply()
         }
 
+        /** Where the Switch button goes: the gamepad from a WoW layout, and back to the last WoW layout from it. */
+        fun switched(context: Context): TouchLayout =
+            if (current(context) != GAMEPAD) GAMEPAD else saved(context, KEY_LAST_ACTION_LAYOUT) ?: WOW
+
+        private fun saved(context: Context, key: String) =
+            prefs(context).getString(key, null)?.let { saved -> entries.firstOrNull { it.name == saved } }
+
         /**
-         * Points the container at the chosen layout. Each WoW layout is played from the player's own copy of the
-         * bundled profile, made on first use: the bundled one is overwritten on every app update, which would undo
-         * changes made with Edit Controls. Gamepad drops our profile but keeps one the player made themselves.
+         * Points the container at the chosen layout. Each layout is played from the player's own copy of the bundled
+         * profile, made on first use: the bundled one is overwritten on every app update, which would undo changes
+         * made with Edit Controls.
          */
         fun apply(context: Context, container: Container, layout: TouchLayout) {
+            val templateId = layout.templateProfileId
             var manager = InputControlsManager(context)
             // The bundled profiles are only copied out when the version code changes, so an update that keeps it
             // would leave the layout missing.
-            layout.templateProfileId?.takeIf { manager.getProfile(it) == null }?.let { templateId ->
+            if (manager.getProfile(templateId) == null) {
                 val file = ControlsProfile.getProfileFile(context, templateId)
                 if (!file.exists()) {
                     FileUtils.copy(context, "inputcontrols/profiles/controls-$templateId.icp", file)
                     manager = InputControlsManager(context)
                 }
             }
-            val ownCopies = entries.mapNotNull { prefs(context).getInt(it.copyKey, 0).takeIf { id -> id != 0 } }
-            val profileId = layout.templateProfileId?.let { templateId ->
-                prefs(context).getInt(layout.copyKey, 0).takeIf { it != 0 && manager.getProfile(it) != null }
-                    ?: runCatching {
-                        val copy = manager.duplicateProfile(manager.getProfile(templateId) ?: return)
-                        copy.setName("WoW Forever - ${layout.label}")
-                        copy.save()
-                        prefs(context).edit().putInt(layout.copyKey, copy.id).apply()
-                        copy.id
-                    }.onFailure { Timber.w(it, "Couldn't copy the ${layout.label} touch profile") }.getOrNull()
-                    ?: return
-            }
-            val current = container.getExtra("profileId", "0").toIntOrNull() ?: 0
-            when {
-                profileId != null -> container.putExtra("profileId", profileId.toString())
-                current in ownCopies -> container.putExtra("profileId", null)
-                else -> return
-            }
+            val profileId = prefs(context).getInt(layout.copyKey, 0).takeIf { it != 0 && manager.getProfile(it) != null }
+                ?: runCatching {
+                    val copy = manager.duplicateProfile(manager.getProfile(templateId) ?: return)
+                    copy.setName("WoW Forever - ${layout.label}")
+                    copy.save()
+                    prefs(context).edit().putInt(layout.copyKey, copy.id).apply()
+                    copy.id
+                }.onFailure { Timber.w(it, "Couldn't copy the ${layout.label} touch profile") }.getOrNull()
+                ?: return
+            container.putExtra("profileId", profileId.toString())
             container.saveData()
         }
     }

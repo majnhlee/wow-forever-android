@@ -2440,6 +2440,7 @@ fun XServerScreen(
             icView.setShowKeyboardCallback {
                 showSoftKeyboard(icView, "onscreen_keyboard_enabled_from_binding")
             }
+            if (TouchLayout.isFor(container)) wireTouchLayoutSwitch(context, icView, container, xServerView.getxServer().winHandler)
             PluviaApp.radialMenuCoordinator?.bindInputControlsView(icView)
 
             xServerView.getxServer().winHandler.setInputControlsView(PluviaApp.inputControlsView)
@@ -3190,6 +3191,14 @@ private fun switchTouchLayout(context: Context, container: Container, winHandler
     val profileId = container.getExtra("profileId", "0").toIntOrNull() ?: 0
     val profile = manager.getProfile(profileId) ?: manager.getProfile(0) ?: return
     showInputControls(profile, winHandler, container)
+}
+
+/** Wires the on-screen Switch button, which flips between the WoW gamepad and the WoW layout played last. */
+private fun wireTouchLayoutSwitch(context: Context, icView: InputControlsView, container: Container, winHandler: WinHandler) {
+    icView.setSwitchLayoutCallback {
+        TouchLayout.save(context, TouchLayout.switched(context))
+        switchTouchLayout(context, container, winHandler, controlsVisible = true)
+    }
 }
 
 private fun hideInputControls() {
