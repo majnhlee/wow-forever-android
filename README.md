@@ -108,7 +108,7 @@ Once your game files and Battle.net credentials are configured, the app automati
 
 All three layouts are made for WoW Forever's gamepad mode, which the app turns on: WoW shows its gamepad action bars and menus, and reads the on-screen buttons as a controller.
 
-- **Combat** is WoW's gamepad action bar at thumb size: 32 buttons, one for every slot, in the same places as on WoW's screen. The plain set is at the top, LT on the left, RT on the right and LT+RT at the bottom, each as a D-pad diamond beside an A/B/X/Y diamond. It also has LB and RB in the top corners, the LB+LT and RB+RT slots, Start, Select, L3 and R3. Open menus from the WoW layout.
+- **Combat** is WoW's gamepad action bar at thumb size: 32 buttons, one for every slot, in the same places as on WoW's screen. The plain set is at the top, LT on the left, RT on the right and LT+RT at the bottom, each as a D-pad diamond beside an A/B/X/Y diamond. It also has LT and RT on their own with LB and RB below them in the top corners, the LB+LT and RB+RT slots, Start, Select, L3 and R3. Open menus from the WoW layout.
 - **Gamepad** is a full virtual controller: A/B/X/Y, LB/RB, LT/RT, D-pad, Start/Select and L3/R3. Drag on the left half of the screen to move and on the right half to turn the camera.
 - **WoW** is the same controller with more on top:
   - 24 chord buttons, one for every slot of WoW's LT, RT and LT+RT action sets, each pressed in one tap. Each set is two small diamonds laid out like a controller, the D-pad half on the left and A/B/X/Y on the right: LT on the left (`L+↑` … `L+A`), LT+RT above the middle (`LR+↑` … `LR+A`) and RT on the right (`R+↑` … `R+A`).
