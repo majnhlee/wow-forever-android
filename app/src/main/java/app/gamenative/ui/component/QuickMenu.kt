@@ -56,6 +56,9 @@ import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.TouchApp
+import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.ui.platform.LocalContext
+import app.gamenative.ui.screen.wow.TouchLayout
 import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -119,6 +122,7 @@ object QuickMenuAction {
     const val SHOOTER_MODE = 9
     const val RADIAL_MENU = 10
     const val GYRO = 11
+    const val TOUCH_LAYOUT = 12
 }
 
 private object QuickMenuTab {
@@ -166,6 +170,8 @@ data class QuickMenuItem(
     val labelResId: Int,
     val accentColor: Color = Color.Unspecified,
     val enabled: Boolean = true,
+    /** Shown instead of [labelResId] when the label changes at runtime. */
+    val label: String? = null,
 )
 
 private enum class PerformanceHudPreset(val labelResId: Int) {
@@ -350,6 +356,8 @@ fun QuickMenu(
     // Kept here rather than plumbed through XServerScreen: that composable sits at the
     // dex verifier's register limit and extra locals can produce invalid bytecode.
     val gyroMenu = remember(container?.id) { container?.let(::GyroQuickMenuState) }
+    val context = LocalContext.current
+    var touchLayout by remember(container?.id) { mutableStateOf(TouchLayout.current(context)) }
 
     val controllerItems = buildList {
         add(
@@ -383,6 +391,17 @@ fun QuickMenu(
                     icon = Icons.Default.Gamepad,
                     labelResId = R.string.edit_physical_controller,
                     accentColor = PluviaTheme.colors.accentPurple,
+                )
+            )
+        }
+        if (container != null && TouchLayout.isFor(container)) {
+            add(
+                QuickMenuItem(
+                    id = QuickMenuAction.TOUCH_LAYOUT,
+                    icon = Icons.Default.Dashboard,
+                    labelResId = R.string.input_controls,
+                    accentColor = PluviaTheme.colors.accentPurple,
+                    label = "Touch layout: ${touchLayout.label}",
                 )
             )
         }
@@ -797,6 +816,11 @@ fun QuickMenu(
                                                     onClick = {
                                                         if (item.id == QuickMenuAction.GYRO && gyroMenu != null) {
                                                             gyroMenu.setEnabled(!gyroEnabled)
+                                                        } else if (item.id == QuickMenuAction.TOUCH_LAYOUT) {
+                                                            // Stays open, so repeated taps step through the layouts.
+                                                            touchLayout = touchLayout.next()
+                                                            TouchLayout.save(context, touchLayout)
+                                                            onItemSelected(item.id)
                                                         } else if (onItemSelected(item.id)) {
                                                             onDismiss()
                                                         }
@@ -1602,7 +1626,7 @@ private fun QuickMenuRailActionButton(
     ) {
         Icon(
             imageVector = item.icon,
-            contentDescription = stringResource(item.labelResId),
+            contentDescription = item.label ?: stringResource(item.labelResId),
             tint = if (isFocused) accentColor else accentColor.copy(alpha = 0.9f),
             modifier = Modifier.size(24.dp),
         )
@@ -2280,7 +2304,7 @@ private fun QuickMenuItemRow(
             }
 
             Text(
-                text = stringResource(item.labelResId),
+                text = item.label ?: stringResource(item.labelResId),
                 style = MaterialTheme.typography.bodyLarge,
                 color = when {
                     !isEnabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = disabledAlpha)

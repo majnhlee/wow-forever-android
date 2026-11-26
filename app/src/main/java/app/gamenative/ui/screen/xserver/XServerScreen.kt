@@ -109,6 +109,7 @@ import app.gamenative.ui.data.PerformanceHudConfig
 import app.gamenative.ui.data.PerformanceHudSize
 import app.gamenative.ui.data.XServerState
 import app.gamenative.GameSessionService
+import app.gamenative.ui.screen.wow.TouchLayout
 import app.gamenative.ui.screen.wow.WowMachineIdentity
 import app.gamenative.ui.widget.PerformanceHudView
 import app.gamenative.utils.AssetUtils
@@ -1194,6 +1195,11 @@ fun XServerScreen(
                 }
                 areControlsVisible = !areControlsVisible
                 true
+            }
+
+            QuickMenuAction.TOUCH_LAYOUT -> {
+                switchTouchLayout(context, container, xServerView?.getxServer()?.winHandler, areControlsVisible)
+                false
             }
 
             QuickMenuAction.DISABLE_MOUSE -> {
@@ -3169,6 +3175,21 @@ private fun showInputControls(profile: ControlsProfile, winHandler: WinHandler, 
         // Tell WinHandler to update its internal state.
         winHandler.refreshControllerMappings()
     }
+}
+
+/**
+ * Points the container at the touch layout just picked in the quick menu. When the on-screen controls are up the new
+ * layout replaces them at once; otherwise it's the one they show next time.
+ */
+private fun switchTouchLayout(context: Context, container: Container, winHandler: WinHandler?, controlsVisible: Boolean) {
+    TouchLayout.apply(context, container, TouchLayout.current(context))
+    // A fresh manager, since apply() may have just made the player's copy of the layout's profile.
+    val manager = InputControlsManager(context)
+    PluviaApp.inputControlsManager = manager
+    if (!controlsVisible || winHandler == null) return
+    val profileId = container.getExtra("profileId", "0").toIntOrNull() ?: 0
+    val profile = manager.getProfile(profileId) ?: manager.getProfile(0) ?: return
+    showInputControls(profile, winHandler, container)
 }
 
 private fun hideInputControls() {

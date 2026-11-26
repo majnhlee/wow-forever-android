@@ -1027,11 +1027,16 @@ enum class TouchLayout(val label: String, val templateProfileId: Int?) {
 
     private val copyKey get() = "touch_profile_$name"
 
+    fun next(): TouchLayout = entries[(ordinal + 1) % entries.size]
+
     companion object {
         private const val KEY_TOUCH_LAYOUT = "touch_layout"
 
+        /** The layouts are WoW's, so the in-game menu only offers them for the WoW container. */
+        fun isFor(container: Container) = container.id == CONTAINER_ID
+
         fun current(context: Context): TouchLayout =
-            prefs(context).getString(KEY_TOUCH_LAYOUT, null)?.let { saved -> entries.firstOrNull { it.name == saved } } ?: GAMEPAD
+            prefs(context).getString(KEY_TOUCH_LAYOUT, null)?.let { saved -> entries.firstOrNull { it.name == saved } } ?: WOW
 
         fun save(context: Context, layout: TouchLayout) {
             prefs(context).edit().putString(KEY_TOUCH_LAYOUT, layout.name).apply()
