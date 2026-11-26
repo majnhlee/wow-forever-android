@@ -69,6 +69,7 @@ import com.winlator.contents.ContentsManager
 import com.winlator.core.FileUtils
 import com.winlator.core.GPUInformation
 import com.winlator.core.TarCompressorUtils
+import com.winlator.inputcontrols.ControlsProfile
 import com.winlator.inputcontrols.InputControlsManager
 import com.winlator.xenvironment.ImageFs
 import com.winlator.xenvironment.ImageFsInstaller
@@ -1048,7 +1049,16 @@ enum class TouchLayout(val label: String, val templateProfileId: Int?) {
          * changes made with Edit Controls. Gamepad drops our profile but keeps one the player made themselves.
          */
         fun apply(context: Context, container: Container, layout: TouchLayout) {
-            val manager = InputControlsManager(context)
+            var manager = InputControlsManager(context)
+            // The bundled profiles are only copied out when the version code changes, so an update that keeps it
+            // would leave the layout missing.
+            layout.templateProfileId?.takeIf { manager.getProfile(it) == null }?.let { templateId ->
+                val file = ControlsProfile.getProfileFile(context, templateId)
+                if (!file.exists()) {
+                    FileUtils.copy(context, "inputcontrols/profiles/controls-$templateId.icp", file)
+                    manager = InputControlsManager(context)
+                }
+            }
             val ownCopies = entries.mapNotNull { prefs(context).getInt(it.copyKey, 0).takeIf { id -> id != 0 } }
             val profileId = layout.templateProfileId?.let { templateId ->
                 prefs(context).getInt(layout.copyKey, 0).takeIf { it != 0 && manager.getProfile(it) != null }
