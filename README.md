@@ -110,7 +110,7 @@ Both layouts are made for WoW Forever's gamepad mode, which the app turns on: Wo
 
 - **Gamepad** is a full virtual controller: A/B/X/Y, LB/RB, LT/RT, D-pad, Start/Select and L3/R3. Drag on the left half of the screen to move and on the right half to turn the camera.
 - **WoW** is the same controller with more on top:
-  - Eight chord buttons, **LT+A** … **RT+Y**, that press a chord from WoW's LT and RT action sets in one tap.
+  - 24 chord buttons, one for every slot of WoW's LT, RT and LT+RT action sets, each pressed in one tap. Each set is two small diamonds laid out like a controller, the D-pad half on the left and A/B/X/Y on the right: LT on the left (`L+↑` … `L+A`), LT+RT above the middle (`LR+↑` … `LR+A`) and RT on the right (`R+↑` … `R+A`).
   - A row of shortcuts to **Esc**, **Bags**, **Map**, **Quests** and **Spells**.
 
 WoW lets you put any spell on any slot, so every button can be changed. Open **Edit Controls** in the sidebar, tap a button, and give it any key, controller button or chord of up to three (keep the mode on **Simultaneous**), and a label such as the spell's name. Your changes are kept across app updates, until an update changes the layout itself.
