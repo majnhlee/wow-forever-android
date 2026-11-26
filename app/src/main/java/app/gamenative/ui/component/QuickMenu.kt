@@ -57,6 +57,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.ui.platform.LocalContext
 import app.gamenative.ui.screen.wow.TouchLayout
 import androidx.compose.material.icons.filled.BatteryChargingFull
@@ -123,6 +124,7 @@ object QuickMenuAction {
     const val RADIAL_MENU = 10
     const val GYRO = 11
     const val TOUCH_LAYOUT = 12
+    const val QUICK_COMMANDS = 13
 }
 
 private object QuickMenuTab {
@@ -404,6 +406,14 @@ fun QuickMenu(
                     label = "Touch layout: ${touchLayout.label}",
                 )
             )
+            add(
+                QuickMenuItem(
+                    id = QuickMenuAction.QUICK_COMMANDS,
+                    icon = Icons.Default.Terminal,
+                    labelResId = R.string.quick_commands,
+                    accentColor = PluviaTheme.colors.accentPurple,
+                )
+            )
         }
         add(
             QuickMenuItem(
@@ -451,6 +461,7 @@ fun QuickMenu(
     }
 
     var showGyroSettingsDialog by rememberSaveable(container?.id) { mutableStateOf(false) }
+    var showQuickCommands by rememberSaveable(container?.id) { mutableStateOf(false) }
     var lsfgPresentMode by remember(container?.id) {
         mutableStateOf(container?.let { app.gamenative.utils.LsfgQuickMenuHelper.presentMode(it) } ?: "mailbox")
     }
@@ -816,6 +827,8 @@ fun QuickMenu(
                                                     onClick = {
                                                         if (item.id == QuickMenuAction.GYRO && gyroMenu != null) {
                                                             gyroMenu.setEnabled(!gyroEnabled)
+                                                        } else if (item.id == QuickMenuAction.QUICK_COMMANDS) {
+                                                            showQuickCommands = true
                                                         } else if (item.id == QuickMenuAction.TOUCH_LAYOUT) {
                                                             // Stays open, so repeated taps step through the layouts.
                                                             touchLayout = touchLayout.next()
@@ -860,6 +873,18 @@ fun QuickMenu(
                 }
             }
         }
+    }
+
+    if (showQuickCommands) {
+        app.gamenative.ui.component.dialog.QuickCommandsDialog(
+            onDismiss = { showQuickCommands = false },
+            onSend = { command ->
+                showQuickCommands = false
+                onDismiss()
+                // Typed once the menu has closed and the game has its input back.
+                PluviaApp.imeInputReceiver?.sendChatCommand(command)
+            },
+        )
     }
 
     if (showGyroSettingsDialog && gyroMenu != null) {

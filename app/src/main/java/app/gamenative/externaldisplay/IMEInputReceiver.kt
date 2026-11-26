@@ -121,6 +121,22 @@ class IMEInputReceiver(
         val requiresShift: Boolean,
     )
 
+    /**
+     * Sends a chat command the way a player types one: Enter opens the chat box, the command is typed, Enter sends it.
+     * Starts after [delayMs] so a menu that was just closed has given the game its input back. The steps are spaced
+     * so the chat box is open before the text arrives.
+     */
+    fun sendChatCommand(command: String, delayMs: Long = 500) {
+        postDelayed({ pressKey(com.winlator.xserver.XKeycode.KEY_ENTER) }, delayMs)
+        postDelayed({ typeText(command) }, delayMs + 200)
+        postDelayed({ pressKey(com.winlator.xserver.XKeycode.KEY_ENTER) }, delayMs + 350)
+    }
+
+    private fun pressKey(key: com.winlator.xserver.XKeycode) {
+        xServer.injectKeyPress(key, 0)
+        xServer.injectKeyRelease(key)
+    }
+
     fun typeText(text: CharSequence) {
         var index = 0
         while (index < text.length) {
