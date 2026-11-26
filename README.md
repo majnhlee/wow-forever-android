@@ -96,7 +96,7 @@ Once your game files and Battle.net credentials are configured, the app automati
 ### Controls and signing in
 
 - **Controller:** built-in handheld controllers work in-game. WoW's own gamepad mode handles the mapping.
-- **Touch controls:** with no controller, keyboard or mouse connected, on-screen controls appear. Tap **Touch** on the setup screen to pick the layout: **WoW** (the default) or **Gamepad**. In the game, the **Pad** and **WoW** buttons switch between them, as does **Touch layout** in the sidebar's controller tab. See [Touch layouts for WoW](#touch-layouts-for-wow).
+- **Touch controls:** with no controller, keyboard or mouse connected, on-screen controls appear. Tap **Touch** on the setup screen to pick the layout: **WoW** (the default), **Combat** or **Gamepad**. In the game, each layout's switch button moves on to the next one (Combat, WoW, Gamepad), as does **Touch layout** in the sidebar's controller tab. See [Touch layouts for WoW](#touch-layouts-for-wow).
 - **In-game menu:** press Back (the button or the back swipe gesture) to open the sidebar. It has **Keyboard**, on-screen controls, performance overlay and **Exit**.
 - **Keyboard:** the sidebar's **Keyboard** opens the Android keyboard. On dual-screen devices like the Thor it appears on the bottom screen. Symbols like `@` work, and so does pasting.
 - **Battle.net Auto-Login:** configure credentials directly on the launcher setup screen (**Password login**). Credentials are saved encrypted on-device via Android Keystore. On boot, the launcher generates `_forever_/login.txt`, which the WoW client automatically reads on startup to sign in natively without macro simulation or synthetic clicks. Use **Forget Login** on the launcher setup screen to clear credentials and remove the login file.
@@ -106,8 +106,9 @@ Once your game files and Battle.net credentials are configured, the app automati
 
 ### Touch layouts for WoW
 
-Both layouts are made for WoW Forever's gamepad mode, which the app turns on: WoW shows its gamepad action bars and menus, and reads the on-screen buttons as a controller.
+All three layouts are made for WoW Forever's gamepad mode, which the app turns on: WoW shows its gamepad action bars and menus, and reads the on-screen buttons as a controller.
 
+- **Combat** is WoW's gamepad action bar at thumb size: 32 buttons, one for every slot, in the same places as on WoW's screen. The plain set is at the top, LT on the left, RT on the right and LT+RT at the bottom, each as a D-pad diamond beside an A/B/X/Y diamond. It also has LB and RB in the top corners, the LB+LT and RB+RT slots, Start, Select, L3 and R3. Open menus from the WoW layout.
 - **Gamepad** is a full virtual controller: A/B/X/Y, LB/RB, LT/RT, D-pad, Start/Select and L3/R3. Drag on the left half of the screen to move and on the right half to turn the camera.
 - **WoW** is the same controller with more on top:
   - 24 chord buttons, one for every slot of WoW's LT, RT and LT+RT action sets, each pressed in one tap. Each set is two small diamonds laid out like a controller, the D-pad half on the left and A/B/X/Y on the right: LT on the left (`L+↑` … `L+A`), LT+RT above the middle (`LR+↑` … `LR+A`) and RT on the right (`R+↑` … `R+A`).

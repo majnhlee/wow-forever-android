@@ -3193,7 +3193,7 @@ private fun switchTouchLayout(context: Context, container: Container, winHandler
     showInputControls(profile, winHandler, container)
 }
 
-/** Wires the on-screen Switch button, which flips between the WoW gamepad and the WoW layout played last. */
+/** Wires the on-screen Switch button, which moves on to the next touch layout. */
 private fun wireTouchLayoutSwitch(context: Context, icView: InputControlsView, container: Container, winHandler: WinHandler) {
     icView.setSwitchLayoutCallback {
         TouchLayout.save(context, TouchLayout.switched(context))

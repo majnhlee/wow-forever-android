@@ -1021,11 +1021,12 @@ enum class RenderResolution(val size: String, val label: String) {
 
 /**
  * The on-screen controls shown when no controller, keyboard or mouse is connected, each bundled as an input-control
- * profile and both built for WoW's gamepad mode: a plain virtual gamepad, and the same gamepad with one-tap chords
- * into WoW's LT and RT action sets plus shortcuts to its windows. Each has a Switch button to the other one.
+ * profile and all built for WoW's gamepad mode: Combat lays WoW's gamepad action bar out at thumb size, WoW adds
+ * one-tap chords for its LT, RT and LT+RT sets and shortcuts to its windows to a full gamepad, and Gamepad is the
+ * plain virtual gamepad. Each has a Switch button to the next one, in this order.
  */
 enum class TouchLayout(val label: String, private val templateAsset: String) {
-    GAMEPAD("Gamepad", "controls-102.icp"), WOW("WoW", "controls-100.icp");
+    COMBAT("Combat", "controls-103.icp"), WOW("WoW", "controls-100.icp"), GAMEPAD("Gamepad", "controls-102.icp");
 
     private val copyKey get() = "touch_profile_$name"
     private val revisionKey get() = "touch_profile_revision_$name"
@@ -1034,7 +1035,6 @@ enum class TouchLayout(val label: String, private val templateAsset: String) {
 
     companion object {
         private const val KEY_TOUCH_LAYOUT = "touch_layout"
-        private const val KEY_LAST_ACTION_LAYOUT = "touch_layout_last_action"
         private const val ASSET_DIR = "inputcontrols/profiles"
 
         /** The layouts are WoW's, so the in-game menu only offers them for the WoW container. */
@@ -1043,14 +1043,11 @@ enum class TouchLayout(val label: String, private val templateAsset: String) {
         fun current(context: Context): TouchLayout = saved(context, KEY_TOUCH_LAYOUT) ?: WOW
 
         fun save(context: Context, layout: TouchLayout) {
-            val editor = prefs(context).edit().putString(KEY_TOUCH_LAYOUT, layout.name)
-            if (layout != GAMEPAD) editor.putString(KEY_LAST_ACTION_LAYOUT, layout.name)
-            editor.apply()
+            prefs(context).edit().putString(KEY_TOUCH_LAYOUT, layout.name).apply()
         }
 
-        /** Where the Switch button goes: the gamepad from a WoW layout, and back to the last WoW layout from it. */
-        fun switched(context: Context): TouchLayout =
-            if (current(context) != GAMEPAD) GAMEPAD else saved(context, KEY_LAST_ACTION_LAYOUT) ?: WOW
+        /** Where the on-screen Switch button goes. */
+        fun switched(context: Context): TouchLayout = current(context).next()
 
         private fun saved(context: Context, key: String) =
             prefs(context).getString(key, null)?.let { saved -> entries.firstOrNull { it.name == saved } }
