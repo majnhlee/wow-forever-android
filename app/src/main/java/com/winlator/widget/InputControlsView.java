@@ -49,6 +49,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
@@ -58,6 +59,11 @@ public class InputControlsView extends View {
     private static final long SHOOTER_SPRINT_TAP_DURATION_MS = 120;
     public static final float DEFAULT_OVERLAY_OPACITY = 0.4f;
     private static final int SEQUENCE_PRESS_MS = 80;
+    // Games read the gamepad once a frame, so a quicker tap than about two frames can be missed entirely.
+    private static final int GAMEPAD_MIN_PRESS_MS = 80;
+    // A chord's shoulder or trigger goes down this long before its other buttons, so the game sees it held
+    // when they arrive (WoW otherwise reads LT+A as a plain A).
+    private static final int GAMEPAD_MODIFIER_LEAD_MS = 50;
     private boolean editMode = false;
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Path path = new Path();
@@ -67,6 +73,15 @@ public class InputControlsView extends View {
     private boolean moveCursor = false;
     private final Set<BindingCombo> activeSequenceCombos = Collections.newSetFromMap(new IdentityHashMap<>());
     private final Map<Binding, Integer> activeSequenceBindings = new EnumMap<>(Binding.class);
+    private final Map<Binding, Long> gamepadPressTimes = new EnumMap<>(Binding.class);
+    private final Map<Binding, Runnable> pendingGamepadReleases = new EnumMap<>(Binding.class);
+    private final Map<BindingCombo, GamepadChord> activeGamepadChords = new IdentityHashMap<>();
+
+    /** A combo of gamepad shoulders or triggers with other gamepad buttons, pressed in two steps. */
+    private static final class GamepadChord {
+        boolean buttonsDown;
+        boolean released;
+    }
     private final Map<Object, Binding> activeSequenceSources = new IdentityHashMap<>();
     private int sequenceGeneration = 0;
     private int snappingSize;
@@ -1613,6 +1628,11 @@ public class InputControlsView extends View {
             return;
         }
 
+        if (isGamepadChord(bindingCombo)) {
+            handleGamepadChord(bindingCombo, isActionDown, offset, source);
+            return;
+        }
+
         if (isActionDown) {
             for (Binding binding : bindingCombo.getBindings()) {
                 handleInputEvent(binding, true, offset, source);
@@ -1624,6 +1644,69 @@ public class InputControlsView extends View {
                 handleInputEvent(bindings.get(i), false, offset, source);
             }
         }
+    }
+
+    private static boolean isGamepadModifier(Binding binding) {
+        return binding == Binding.GAMEPAD_BUTTON_L1 || binding == Binding.GAMEPAD_BUTTON_R1 ||
+                binding == Binding.GAMEPAD_BUTTON_L2 || binding == Binding.GAMEPAD_BUTTON_R2;
+    }
+
+    private static boolean isGamepadChord(BindingCombo bindingCombo) {
+        boolean hasModifier = false;
+        boolean hasButton = false;
+        for (Binding binding : bindingCombo.getBindings()) {
+            if (!binding.isGamepad() || binding.isGamepadAxis()) return false;
+            if (isGamepadModifier(binding)) hasModifier = true;
+            else hasButton = true;
+        }
+        return hasModifier && hasButton;
+    }
+
+    /**
+     * Presses a chord like LT+A the way a hand does: the modifier first, the button a frame later, and on release
+     * the button before the modifier. A tap that ends before the button went down still sends the whole chord.
+     */
+    private void handleGamepadChord(BindingCombo chord, boolean isActionDown, float offset, Object source) {
+        if (isActionDown) {
+            if (activeGamepadChords.containsKey(chord)) return;
+            GamepadChord state = new GamepadChord();
+            activeGamepadChords.put(chord, state);
+            for (Binding binding : chord.getBindings()) {
+                if (isGamepadModifier(binding)) handleInputEvent(binding, true, offset, source);
+            }
+            commitGamepadState();
+            postDelayed(() -> {
+                if (activeGamepadChords.get(chord) != state) return;
+                for (Binding binding : chord.getBindings()) {
+                    if (!isGamepadModifier(binding)) handleInputEvent(binding, true, offset, source);
+                }
+                commitGamepadState();
+                state.buttonsDown = true;
+                if (state.released) releaseGamepadChord(chord, state, source);
+            }, GAMEPAD_MODIFIER_LEAD_MS);
+        }
+        else {
+            GamepadChord state = activeGamepadChords.get(chord);
+            if (state == null || state.released) return;
+            state.released = true;
+            if (state.buttonsDown) releaseGamepadChord(chord, state, source);
+        }
+    }
+
+    private void releaseGamepadChord(BindingCombo chord, GamepadChord state, Object source) {
+        List<Binding> bindings = chord.getBindings();
+        for (int i = bindings.size() - 1; i >= 0; i--) {
+            if (!isGamepadModifier(bindings.get(i))) handleInputEvent(bindings.get(i), false, 0, source);
+        }
+        // The buttons are held for at least GAMEPAD_MIN_PRESS_MS; the modifiers go up after them.
+        postDelayed(() -> {
+            if (activeGamepadChords.get(chord) != state) return;
+            activeGamepadChords.remove(chord);
+            for (int i = bindings.size() - 1; i >= 0; i--) {
+                if (isGamepadModifier(bindings.get(i))) handleInputEvent(bindings.get(i), false, 0, source);
+            }
+            commitGamepadState();
+        }, GAMEPAD_MIN_PRESS_MS + GAMEPAD_MODIFIER_LEAD_MS);
     }
 
     private void performBindingSequence(BindingCombo bindingCombo, float offset) {
@@ -1707,7 +1790,38 @@ public class InputControlsView extends View {
             return;
         }
 
+        if (binding.isGamepad() && !binding.isGamepadAxis()) {
+            if (isActionDown) {
+                Runnable pending = pendingGamepadReleases.remove(binding);
+                if (pending != null) removeCallbacks(pending);
+                gamepadPressTimes.put(binding, android.os.SystemClock.uptimeMillis());
+            }
+            else {
+                Long pressedAt = gamepadPressTimes.remove(binding);
+                long heldMs = pressedAt != null ? android.os.SystemClock.uptimeMillis() - pressedAt : GAMEPAD_MIN_PRESS_MS;
+                if (heldMs < GAMEPAD_MIN_PRESS_MS) {
+                    Runnable release = () -> {
+                        pendingGamepadReleases.remove(binding);
+                        applyGamepadBinding(binding, false, 0);
+                        commitGamepadState();
+                    };
+                    pendingGamepadReleases.put(binding, release);
+                    postDelayed(release, GAMEPAD_MIN_PRESS_MS - heldMs);
+                    return;
+                }
+            }
+        }
+
         if (binding.isGamepad()) {
+            applyGamepadBinding(binding, isActionDown, offset);
+        }
+        else {
+            handleNonGamepadBinding(binding, isActionDown, offset);
+        }
+    }
+
+    private void applyGamepadBinding(Binding binding, boolean isActionDown, float offset) {
+        {
             if (profile == null) return;
             WinHandler winHandler = xServer != null ? xServer.getWinHandler() : null;
             GamepadState state = profile.getGamepadState();
@@ -1745,7 +1859,10 @@ public class InputControlsView extends View {
                 if (controller != null) controller.state.copy(state);
             }
         }
-        else {
+    }
+
+    private void handleNonGamepadBinding(Binding binding, boolean isActionDown, float offset) {
+        {
             if (binding == Binding.SHOW_KEYBOARD) {
                 if (isActionDown) {
                     if (!showKeyboardPressed) {
